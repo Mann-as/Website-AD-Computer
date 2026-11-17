@@ -1,0 +1,157 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String                        @id @default(cuid())
+  name             String
+  email            String                        @unique
+  password         String
+  phone            String?
+  telegramChatId   String?
+  role             String                        @default("CUSTOMER")
+  createdAt        DateTime                      @default(now())
+  updatedAt        DateTime                      @updatedAt
+
+  customerProfile  CustomerProfile?
+  customerRequests ServiceRequest[]              @relation("CustomerRequests")
+  statusChanges    ServiceRequestStatusHistory[] @relation("UserStatusChanges")
+  aiConversations  AIConversation[]
+  telegramLinkTokens TelegramLinkToken[]
+}
+
+model CustomerProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  address   String?
+  city      String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String?
+  description String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Technician {
+  id             String   @id @default(cuid())
+  name           String
+  email          String   @unique
+  phone          String?
+  specialization String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  assignedRequests ServiceRequest[] @relation("TechnicianAssignments")
+}
+
+model Service {
+  id                String           @id @default(cuid())
+  name              String
+  slug              String           @unique
+  description       String
+  category          String           // COMPUTER_REPAIR, SOFTWARE, NETWORKING, MAINTENANCE, IT_SUPPORT, OTHER
+  price             Float
+  estimatedDuration String
+  isActive          Boolean          @default(true)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  serviceRequests   ServiceRequest[]
+}
+
+model ServiceRequest {
+  id                 String                        @id @default(cuid())
+  ticketNumber       String                        @unique
+  customerId         String
+  customer           User                          @relation("CustomerRequests", fields: [customerId], references: [id])
+  technicianId       String?
+  technician         Technician?                   @relation("TechnicianAssignments", fields: [technicianId], references: [id], onDelete: SetNull)
+  serviceId          String?
+  service            Service?                      @relation(fields: [serviceId], references: [id])
+  
+  problemDescription String
+  attachment         String?
+  serviceType        String                        @default("DROP_OFF") // ONSITE, DROP_OFF, REMOTE
+  preferredDate      DateTime?
+  preferredTime      String?
+  status             String                        @default("REQUESTED") // REQUESTED, CONFIRMED, IN_PROGRESS, WAITING_CUSTOMER, COMPLETED, CANCELLED, PAID
+  estimatedCost      Float                         @default(0)
+  finalCost          Float                         @default(0)
+  adminNotes         String?
+  technicianNotes    String?
+
+  createdAt          DateTime                      @default(now())
+  updatedAt          DateTime                      @updatedAt
+
+  statusHistory      ServiceRequestStatusHistory[]
+  payments           Payment[]
+
+  @@index([customerId])
+  @@index([technicianId])
+  @@index([serviceId])
+  @@index([status])
+}
+
+model ServiceRequestStatusHistory {
+  id               String         @id @default(cuid())
+  serviceRequestId String
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  oldStatus        String?
+  newStatus        String
+  changedBy        String
+  changedByUser    User           @relation("UserStatusChanges", fields: [changedBy], references: [id])
+  note             String?
+  createdAt        DateTime       @default(now())
+
+  @@index([serviceRequestId])
+}
+
+model Payment {
+  id               String         @id @default(cuid())
+  serviceRequestId String
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  amount           Float
+  status           String         @default("UNPAID") // UNPAID, PENDING, PARTIAL, PAID
+  paymentMethod    String
+  paidAt           DateTime?
+  createdAt        DateTime       @default(now())
+
+  @@index([serviceRequestId])
+}
+
+model AIConversation {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prompt    String
+  response  String
+  context   String?
+  createdAt DateTime @default(now())
+}
+
+model TelegramLinkToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}

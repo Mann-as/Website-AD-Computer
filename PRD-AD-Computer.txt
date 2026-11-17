@@ -1,0 +1,741 @@
+PRODUCT REQUIREMENT DOCUMENT (PRD)
+AD COMPUTER - PLATFORM MANAJEMEN LAYANAN KOMPUTER DAN IT
+
+Versi: 1.0
+Status: Draft berdasarkan implementasi aplikasi saat ini
+Tanggal: 2026
+
+====================================================================
+1. RINGKASAN PRODUK
+====================================================================
+
+AD Computer adalah aplikasi web untuk mengelola bisnis layanan komputer dan IT dari sisi customer maupun Admin. Aplikasi menyediakan katalog layanan, booking service, pelacakan status perbaikan, pengelolaan teknisi, pembayaran, notifikasi Telegram, serta AI Assistant yang dapat membantu diagnosis dan membaca data website sesuai hak akses pengguna.
+
+Sistem dirancang untuk mendukung layanan:
+- Perbaikan laptop dan komputer.
+- Troubleshooting hardware dan software.
+- Instalasi sistem operasi dan driver.
+- Setup jaringan, router, Wi-Fi, dan Mikrotik.
+- Maintenance komputer atau kantor.
+- Dukungan IT on-site dan remote.
+- Pengelolaan permintaan layanan dari awal sampai pembayaran.
+
+Aplikasi menggunakan Next.js App Router, TypeScript, Prisma ORM, SQLite untuk pengembangan, dan Google Gemini sebagai mesin AI opsional. Jika Gemini tidak tersedia, sistem mempunyai fallback lokal berbasis FAQ dan template.
+
+====================================================================
+2. TUJUAN PRODUK
+====================================================================
+
+2.1 Tujuan bisnis
+- Memudahkan customer memesan layanan komputer dan IT.
+- Memusatkan pengelolaan tiket service dalam satu dashboard.
+- Mempercepat respons Admin kepada customer.
+- Membantu Admin memantau antrean, pendapatan, pembayaran, teknisi, dan customer.
+- Mengurangi pencatatan manual.
+- Menyediakan data operasional yang dapat digunakan untuk pengambilan keputusan.
+- Memberikan kanal notifikasi otomatis melalui Telegram.
+
+2.2 Tujuan pengguna
+- Customer dapat melihat layanan, harga dasar, membuat booking, memantau status, dan mengonfirmasi pembayaran.
+- Admin dapat mengelola semua data operasional melalui dashboard.
+- AI Assistant dapat menjawab pertanyaan berdasarkan data aplikasi, dengan tetap mematuhi rules, keamanan, dan hak akses.
+
+====================================================================
+3. RUANG LINGKUP PRODUK
+====================================================================
+
+3.1 Dalam ruang lingkup
+- Landing page dan katalog layanan.
+- Registrasi, login, logout, dan autentikasi berbasis JWT.
+- Portal Customer.
+- Dashboard Admin.
+- Profil Customer dan Admin.
+- Booking atau service request.
+- Pelacakan status tiket.
+- Penugasan teknisi.
+- Manajemen katalog layanan dan harga.
+- Manajemen customer.
+- Manajemen teknisi.
+- Manajemen pembayaran.
+- Laporan dan metrik operasional.
+- AI diagnosis.
+- AI draft balasan Admin.
+- AI query terhadap data website dengan pembatasan role.
+- Notifikasi Telegram ke Admin dan Customer yang memiliki Chat ID.
+- Konfigurasi Telegram melalui dashboard Admin.
+- Dukungan dua bot Telegram dengan pilihan bot aktif.
+
+3.2 Di luar ruang lingkup saat ini
+- Pembayaran online otomatis melalui payment gateway.
+- Pengiriman notifikasi Telegram tanpa bot Telegram.
+- Sinkronisasi otomatis dengan akun Telegram pribadi.
+- Webhook Telegram yang memerlukan hosting publik sebagai alur utama.
+- Aplikasi mobile native.
+- Multi-tenant atau banyak perusahaan dalam satu instalasi.
+- Sistem inventori sparepart lengkap.
+- Payroll dan akuntansi penuh.
+- Chat real-time antara customer dan teknisi.
+
+====================================================================
+4. PERAN PENGGUNA
+====================================================================
+
+4.1 Guest
+Guest adalah pengunjung yang belum login.
+Hak akses:
+- Melihat landing page.
+- Melihat katalog layanan yang aktif.
+- Melihat harga dasar dan estimasi durasi.
+- Menggunakan informasi umum AI Assistant.
+- Melakukan login atau registrasi.
+Tidak boleh:
+- Melihat data customer.
+- Melihat tiket service.
+- Melihat pembayaran.
+- Melihat data internal Admin.
+
+4.2 Customer
+Customer adalah pengguna yang melakukan registrasi dan login.
+Hak akses:
+- Mengelola profil pribadi.
+- Mengisi nomor atau Chat ID Telegram pribadi.
+- Melihat layanan aktif.
+- Membuat service request.
+- Melihat tiket milik sendiri.
+- Melihat status dan riwayat service sendiri.
+- Memilih atau mengonfirmasi metode pembayaran.
+- Mengirim konfirmasi pembayaran.
+- Menggunakan AI diagnosis.
+- Menerima notifikasi Telegram jika Chat ID tersedia.
+Tidak boleh:
+- Melihat tiket customer lain.
+- Melihat daftar seluruh customer.
+- Melihat data pendapatan global.
+- Melihat token, API key, catatan rahasia, atau konfigurasi internal.
+
+4.3 Admin
+Admin adalah pengelola operasional sistem.
+Hak akses:
+- Melihat dashboard KPI.
+- Melihat dan mengelola semua service request.
+- Mengubah status tiket sesuai aturan transisi.
+- Menugaskan teknisi.
+- Mengelola katalog layanan, harga, kategori, durasi, dan status aktif.
+- Mengelola customer.
+- Mengelola teknisi.
+- Memeriksa dan memverifikasi pembayaran.
+- Melihat laporan operasional.
+- Menggunakan AI Assistant untuk data global.
+- Menanyakan total customer dan daftar nama customer.
+- Mengelola API key Gemini melalui Settings.
+- Mengelola pengaturan Telegram dan memilih bot aktif.
+- Mengirim test notification Telegram.
+
+====================================================================
+5. MODUL DAN FITUR UTAMA
+====================================================================
+
+5.1 Landing Page
+Landing page menampilkan:
+- Identitas dan profil AD Computer.
+- Penjelasan layanan.
+- Katalog layanan.
+- Harga dasar.
+- Estimasi durasi.
+- Ajakan booking.
+- Informasi kontak dan lokasi workshop.
+- Akses login dan registrasi.
+
+Katalog hanya menampilkan layanan aktif kepada publik. Admin dapat mengaktifkan atau menonaktifkan layanan.
+
+5.2 Registrasi dan Login
+Registrasi membutuhkan data dasar customer, termasuk nama, email, dan password.
+Login menggunakan email dan password.
+Password disimpan menggunakan hashing bcrypt.
+Session menggunakan JWT yang disimpan pada cookie HttpOnly.
+Middleware dan pemeriksaan server digunakan untuk membatasi halaman berdasarkan role.
+
+5.3 Profil Customer
+Customer dapat mengubah:
+- Nama.
+- Nomor telepon.
+- Alamat.
+- Kota.
+- Chat ID Telegram.
+
+Chat ID Telegram digunakan sebagai tujuan notifikasi customer. Chat ID tidak otomatis diketahui hanya dari akun website; customer harus berinteraksi dengan bot atau memasukkannya melalui mekanisme manual yang didukung.
+
+5.4 Booking dan Service Request
+Customer dapat membuat permintaan service dengan data:
+- Layanan yang dipilih, jika tersedia.
+- Deskripsi masalah.
+- Tipe layanan.
+- Tanggal pilihan.
+- Jam pilihan.
+- Informasi pendukung lainnya.
+
+Tipe service:
+- DROP_OFF: customer membawa perangkat ke workshop.
+- ONSITE: teknisi datang ke lokasi.
+- REMOTE: bantuan dilakukan secara remote.
+
+Setiap permintaan memiliki nomor tiket unik.
+Status awal tiket adalah REQUESTED.
+
+5.5 Status Tiket
+Status yang tersedia:
+- REQUESTED: permintaan baru.
+- CONFIRMED: permintaan dikonfirmasi Admin.
+- IN_PROGRESS: pekerjaan sedang berlangsung.
+- WAITING_CUSTOMER: menunggu tindakan atau informasi dari customer.
+- COMPLETED: pekerjaan selesai.
+- CANCELLED: permintaan dibatalkan.
+- PAID: pembayaran telah diverifikasi.
+
+Transisi status divalidasi pada server. Status CANCELLED tidak boleh dilakukan setelah tiket PAID.
+Setiap perubahan status dapat dicatat dalam status history.
+
+5.6 Manajemen Tiket oleh Admin
+Admin dapat:
+- Melihat semua tiket.
+- Mencari dan memfilter tiket.
+- Melihat detail keluhan.
+- Melihat biaya estimasi dan biaya final.
+- Menambahkan catatan Admin.
+- Menambahkan catatan teknisi.
+- Menugaskan teknisi.
+- Mengubah status.
+- Melihat informasi customer.
+- Melihat data pembayaran terkait.
+
+5.7 Katalog Layanan
+Setiap layanan memiliki:
+- Nama.
+- Slug.
+- Deskripsi.
+- Kategori.
+- Harga.
+- Estimasi durasi.
+- Status aktif.
+- Timestamp pembuatan dan perubahan.
+
+Kategori dapat mencakup:
+- COMPUTER_REPAIR.
+- SOFTWARE.
+- NETWORKING.
+- MAINTENANCE.
+- IT_SUPPORT.
+- OTHER.
+
+Harga pada katalog merupakan harga dasar atau estimasi. Harga final dapat ditentukan setelah pemeriksaan perangkat.
+
+5.8 Manajemen Teknisi
+Admin dapat mengelola:
+- Nama teknisi.
+- Email.
+- Nomor telepon.
+- Spesialisasi.
+- Status aktif.
+- Penugasan teknisi ke tiket.
+
+Teknisi saat ini merupakan entitas operasional dan bukan akun login terpisah.
+
+5.9 Pembayaran
+Customer dapat mengirim konfirmasi pembayaran.
+Payment memiliki:
+- Jumlah.
+- Status.
+- Metode pembayaran.
+- Waktu pembayaran.
+- Waktu pembuatan.
+- Relasi ke service request.
+
+Status pembayaran:
+- UNPAID.
+- PENDING.
+- PARTIAL.
+- PAID.
+
+Alur dasar:
+1. Customer membuat atau menerima tagihan service.
+2. Customer mengirim konfirmasi pembayaran.
+3. Payment berubah menjadi PENDING.
+4. Admin memeriksa pembayaran.
+5. Admin menyetujui pembayaran menjadi PAID.
+6. Tiket dapat berubah menjadi PAID sesuai aturan sistem.
+
+5.10 Dashboard Admin
+Dashboard Admin menampilkan metrik operasional seperti:
+- Total service request.
+- Antrean yang masih berjalan.
+- Jumlah service selesai.
+- Total pendapatan atau pembayaran terverifikasi.
+- Status tiket.
+- Informasi customer.
+- Informasi teknisi.
+
+Menu Admin mencakup:
+- Dashboard.
+- Requests.
+- Services.
+- Customers.
+- Technicians.
+- Payments.
+- Reports.
+- AI Assistant.
+- Settings.
+- Profile.
+
+5.11 Laporan
+Laporan digunakan untuk melihat ringkasan operasional, seperti:
+- Jumlah tiket.
+- Status tiket.
+- Total pembayaran.
+- Pembayaran pending.
+- Pendapatan terverifikasi.
+- Data customer.
+- Performa layanan.
+
+5.12 Notifikasi Telegram
+Sistem dapat mengirim notifikasi Telegram untuk event berikut:
+- Registrasi customer.
+- Booking baru.
+- Konfirmasi pembayaran.
+- Verifikasi pembayaran.
+- Perubahan status tiket.
+
+Penerima:
+- Admin menerima notifikasi ke Chat ID Admin.
+- Customer menerima notifikasi ke Chat ID Telegram miliknya.
+
+Konfigurasi Telegram dapat disimpan melalui database Settings dan dapat menggunakan .env sebagai fallback awal.
+
+Konfigurasi yang didukung:
+- Telegram enabled.
+- Token Bot 1.
+- Token Bot 2.
+- Bot aktif.
+- Chat ID Admin.
+
+Token harus selalu ditampilkan dalam bentuk mask dan tidak boleh dikirim kembali dalam bentuk plaintext melalui API atau UI.
+
+Telegram saat ini memakai pemilihan bot aktif secara manual:
+- Bot 1 sebagai bot utama.
+- Bot 2 sebagai bot cadangan.
+- Admin dapat memilih bot yang digunakan melalui Dashboard Settings.
+
+Jika sistem membutuhkan failover otomatis, sistem dapat dikembangkan untuk mencoba bot kedua ketika pengiriman bot utama gagal. Fitur tersebut harus memperhatikan risiko duplikasi pesan saat request Telegram berhasil tetapi responsnya hilang.
+
+Tanpa bot Telegram, notifikasi Telegram otomatis tidak dapat dijalankan menggunakan API resmi Telegram.
+
+5.13 AI Assistant Customer
+AI Assistant customer digunakan untuk:
+- Diagnosis awal masalah laptop atau komputer.
+- Informasi layanan.
+- Informasi harga katalog.
+- Informasi lokasi dan kontak.
+- Panduan booking.
+- Informasi status tiket milik customer.
+- Informasi riwayat service milik customer.
+- Estimasi umum sparepart dengan disclaimer.
+
+AI tidak boleh memberikan instruksi troubleshooting mandiri jika rule sistem melarangnya.
+
+5.14 AI Assistant Admin
+AI Assistant Admin digunakan untuk:
+- Menjawab statistik operasional.
+- Menjawab total customer.
+- Menyebutkan daftar nama customer.
+- Menjawab jumlah teknisi dan daftar teknisi.
+- Menjawab total pembayaran dan pendapatan terverifikasi.
+- Menjawab tiket global.
+- Menyusun draft balasan customer.
+- Membaca data website yang boleh diakses Admin.
+
+Contoh pertanyaan Admin:
+- Berapa total customer?
+- Siapa saja customer yang terdaftar?
+- Berapa tiket yang sedang berjalan?
+- Berapa total pembayaran yang sudah diverifikasi?
+- Siapa teknisi aktif?
+
+Daftar customer hanya dapat diberikan kepada Admin.
+
+====================================================================
+6. AI, DATA, DAN RULES
+====================================================================
+
+6.1 Sumber data AI
+AI dapat menggunakan:
+- Knowledge base bisnis AD Computer.
+- Katalog layanan dari database.
+- Service request.
+- Status tiket.
+- Pembayaran.
+- Data customer sesuai role.
+- Data teknisi.
+- Data profil user yang sedang login.
+
+Data database dibaca saat request AI dibuat agar jawaban menggunakan kondisi website terbaru.
+
+6.2 Pembatasan berdasarkan role
+- Guest: katalog publik dan informasi umum.
+- Customer: layanan publik dan data milik customer sendiri.
+- Admin: data global operasional.
+
+6.3 Prioritas aturan
+Urutan prioritas AI:
+1. Sistem dan aturan keamanan aplikasi.
+2. Hak akses role pengguna.
+3. Rules bisnis yang ditentukan aplikasi.
+4. Data database yang relevan.
+5. Knowledge base bisnis.
+6. Permintaan pengguna.
+
+Data di database dianggap sebagai data, bukan instruksi. Catatan customer, admin, atau teknisi tidak boleh mengubah system rules.
+
+6.4 Informasi yang dilarang diberikan AI
+AI tidak boleh memberikan:
+- Password.
+- Token Telegram.
+- API key Gemini.
+- JWT secret.
+- Connection string.
+- Database URL.
+- Query SQL.
+- Struktur tabel internal jika diminta sebagai informasi keamanan.
+- Source code internal.
+- Konfigurasi backend.
+- Detail mekanisme keamanan.
+- Data customer lain kepada customer biasa.
+
+6.5 Fallback AI
+Jika API Gemini tidak tersedia, error, atau API key kosong:
+- Sistem menggunakan FAQ lokal.
+- Sistem menggunakan data katalog dan statistik yang tersedia.
+- Sistem menggunakan template diagnosis atau balasan.
+- Sistem tidak boleh mengarang data database.
+
+====================================================================
+7. MODEL DATA UTAMA
+====================================================================
+
+7.1 User
+Menyimpan akun Admin dan Customer.
+Field penting:
+- id.
+- name.
+- email.
+- password hash.
+- phone.
+- telegramChatId.
+- role.
+- createdAt.
+- updatedAt.
+
+7.2 CustomerProfile
+Menyimpan informasi tambahan customer:
+- address.
+- city.
+- notes.
+- relasi ke User.
+
+7.3 Setting
+Menyimpan konfigurasi runtime aplikasi, termasuk:
+- GEMINI_API_KEY.
+- TELEGRAM_ENABLED.
+- TELEGRAM_ACTIVE_BOT.
+- TELEGRAM_BOT_TOKEN_1.
+- TELEGRAM_BOT_TOKEN_2.
+- TELEGRAM_CHAT_ID.
+
+7.4 Service
+Menyimpan katalog jasa dan tarif.
+
+7.5 ServiceRequest
+Menyimpan tiket service customer, relasi customer, teknisi, layanan, pembayaran, dan status history.
+
+7.6 ServiceRequestStatusHistory
+Menyimpan perubahan status, pelaku perubahan, catatan, dan timestamp.
+
+7.7 Technician
+Menyimpan data teknisi.
+
+7.8 Payment
+Menyimpan pembayaran yang terkait service request.
+
+7.9 AIConversation
+Menyimpan prompt dan respons AI untuk kebutuhan histori atau audit aplikasi.
+
+7.10 TelegramLinkToken
+Menyimpan token aktivasi Telegram yang pernah digunakan oleh customer. Fitur otomatis yang memerlukan webhook publik bukan alur utama untuk instalasi lokal tanpa hosting.
+
+====================================================================
+8. API DAN INTEGRASI
+====================================================================
+
+API utama yang tersedia:
+- /api/auth/register: registrasi.
+- /api/auth/login: login.
+- /api/auth/logout: logout.
+- /api/auth/me: pemeriksaan user aktif.
+- /api/profile: profil user.
+- /api/customers: data customer untuk Admin.
+- /api/customers/[id]: detail atau perubahan customer.
+- /api/services: daftar dan pengelolaan layanan.
+- /api/services/[id]: detail dan pengelolaan layanan.
+- /api/service-requests: daftar dan pembuatan tiket.
+- /api/service-requests/[id]: detail dan perubahan tiket.
+- /api/technicians: daftar dan pembuatan teknisi.
+- /api/technicians/[id]: perubahan atau penghapusan teknisi.
+- /api/payments: daftar dan pembuatan pembayaran.
+- /api/payments/[id]: perubahan atau verifikasi pembayaran.
+- /api/settings: membaca dan menyimpan settings Admin.
+- /api/ai/diagnose: diagnosis dan AI Assistant berbasis konteks user.
+- /api/ai/reply: draft balasan customer untuk Admin.
+- /api/telegram/test: pengujian notifikasi Telegram.
+- /api/telegram/link: pembuatan link/token Telegram.
+- /api/telegram/webhook: endpoint webhook Telegram jika deployment publik digunakan.
+
+Integrasi eksternal:
+- Google Gemini API.
+- Telegram Bot API.
+- Prisma ORM.
+- SQLite untuk development atau database yang kompatibel dengan konfigurasi deployment.
+
+====================================================================
+9. KEAMANAN DAN PRIVASI
+====================================================================
+
+- Password di-hash dengan bcrypt.
+- Cookie session menggunakan HttpOnly.
+- Role diperiksa pada middleware dan API server.
+- Input divalidasi dengan Zod pada endpoint penting.
+- Rate limit digunakan pada endpoint AI.
+- Secret tidak boleh dikirim plaintext pada respons GET.
+- Nilai mask secret pada POST tidak boleh menimpa secret lama.
+- File .env tidak boleh diubah melalui browser.
+- Notifikasi gagal tidak boleh menggagalkan proses booking atau pembayaran utama.
+- Data customer dibatasi berdasarkan role.
+- AI tidak boleh menampilkan data internal yang sensitif.
+- Catatan database diperlakukan sebagai data tidak terpercaya untuk mencegah prompt injection.
+
+====================================================================
+10. NON-FUNCTIONAL REQUIREMENTS
+====================================================================
+
+10.1 Performa
+- Halaman publik harus dapat dibuka dengan cepat.
+- Query dashboard harus menggunakan pagination atau batas data bila jumlah data besar.
+- Endpoint AI harus mempunyai rate limit.
+- Pengiriman notifikasi tidak boleh memblokir alur transaksi utama secara permanen.
+
+10.2 Ketersediaan
+- Sistem harus tetap dapat digunakan jika Gemini tidak tersedia.
+- Sistem harus tetap dapat membuat booking jika Telegram gagal.
+- Sistem harus menyediakan fallback lokal untuk jawaban AI umum.
+
+10.3 Usability
+- UI responsif desktop dan mobile.
+- Pesan error harus mudah dipahami.
+- Admin dapat mengubah konfigurasi utama tanpa mengedit .env.
+- Status tiket harus mudah dipahami customer.
+
+10.4 Maintainability
+- Menggunakan TypeScript.
+- Menggunakan Prisma sebagai abstraction database.
+- Menggunakan struktur route App Router.
+- Validasi input terpusat pada endpoint.
+- Rules AI harus dipisahkan dari UI.
+
+====================================================================
+11. ALUR BISNIS UTAMA
+====================================================================
+
+11.1 Alur booking
+1. Customer membuka katalog atau halaman booking.
+2. Customer memilih layanan atau memasukkan keluhan.
+3. Customer memilih tipe service.
+4. Customer mengisi waktu yang diinginkan.
+5. Sistem membuat ticket number.
+6. Status menjadi REQUESTED.
+7. Admin menerima notifikasi jika Telegram aktif.
+8. Admin meninjau, mengonfirmasi, dan menugaskan teknisi.
+
+11.2 Alur pengerjaan
+1. Admin mengonfirmasi tiket.
+2. Teknisi ditugaskan.
+3. Status berubah menjadi IN_PROGRESS.
+4. Teknisi atau Admin mengisi catatan.
+5. Biaya final ditentukan setelah pemeriksaan jika diperlukan.
+6. Status berubah menjadi COMPLETED.
+7. Customer menerima informasi penyelesaian.
+
+11.3 Alur pembayaran
+1. Customer melihat biaya.
+2. Customer membayar melalui metode yang disepakati.
+3. Customer mengirim konfirmasi.
+4. Payment menjadi PENDING.
+5. Admin melakukan verifikasi.
+6. Payment menjadi PAID.
+7. Tiket dapat ditandai PAID.
+
+11.4 Alur notifikasi Telegram
+1. Sistem menghasilkan event.
+2. Sistem membaca konfigurasi Telegram dari database atau .env fallback.
+3. Sistem menggunakan bot aktif.
+4. Sistem mengirim pesan ke Chat ID tujuan.
+5. Jika konfigurasi tidak lengkap atau request gagal, event utama tetap diteruskan dan kegagalan dicatat.
+
+====================================================================
+12. UI/UX DAN NAVIGASI
+====================================================================
+
+Halaman publik:
+- /
+- /login
+- /register
+
+Halaman Customer:
+- /booking
+- /requests
+- /payment/[id]
+- /profile
+- /ai-consultation
+
+Halaman Admin:
+- /admin
+- /admin/requests
+- /admin/services
+- /admin/customers
+- /admin/technicians
+- /admin/payments
+- /admin/reports
+- /admin/ai-assistant
+- /admin/settings
+- /admin/profile
+
+UI menggunakan Tailwind CSS dan ikon Lucide.
+
+====================================================================
+13. KONFIGURASI DAN DEPLOYMENT
+====================================================================
+
+Environment variable yang digunakan atau didukung:
+- DATABASE_URL.
+- JWT_SECRET.
+- GEMINI_API_KEY.
+- TELEGRAM_BOT_TOKEN sebagai fallback legacy atau konfigurasi awal.
+- TELEGRAM_CHAT_ID.
+- TELEGRAM_API_BASE.
+- NEXT_PUBLIC_APP_URL.
+
+Konfigurasi runtime yang diubah Admin disimpan pada tabel Setting. Browser tidak menulis file .env secara langsung.
+
+Development:
+1. npm install
+2. Salin .env.example menjadi .env.
+3. npx prisma db push
+4. npm run db:seed
+5. npm run dev
+6. Buka http://localhost:3000.
+
+Production:
+1. Siapkan database production.
+2. Isi environment variable.
+3. Jalankan migrasi atau db push sesuai prosedur deployment.
+4. Jalankan npm run build.
+5. Jalankan npm start.
+6. Pastikan HTTPS dan secret production digunakan.
+
+====================================================================
+14. QUALITY ASSURANCE
+====================================================================
+
+Perintah verifikasi proyek:
+- npm run typecheck
+- npm run lint
+- npm run build
+
+Skenario uji minimum:
+- Registrasi customer.
+- Login Admin dan Customer.
+- Customer membuat booking.
+- Admin melihat dan mengubah status tiket.
+- Admin menugaskan teknisi.
+- Customer mengirim pembayaran.
+- Admin memverifikasi pembayaran.
+- Notifikasi Telegram dikirim ke Admin.
+- Notifikasi Telegram dikirim ke Customer yang memiliki Chat ID.
+- Admin mengganti bot aktif.
+- Secret tetap termask pada UI dan API.
+- Customer tidak dapat mengakses data customer lain.
+- AI customer hanya menjawab data milik customer.
+- AI Admin dapat menjawab total customer dan daftar nama customer.
+- AI menolak permintaan untuk menampilkan secret atau struktur keamanan.
+- AI tetap berjalan dengan fallback jika Gemini API key kosong.
+
+====================================================================
+15. RISIKO DAN CATATAN PENGEMBANGAN
+====================================================================
+
+- Telegram Bot API memerlukan bot; pengiriman otomatis dari akun Telegram pribadi bukan bagian dari integrasi resmi.
+- Customer harus pernah berinteraksi dengan bot agar bot dapat mengirim pesan sesuai aturan Telegram.
+- Webhook Telegram membutuhkan endpoint HTTPS publik dan tidak praktis untuk instalasi lokal tanpa hosting.
+- Pemilihan dua bot saat ini manual. Failover otomatis perlu desain idempotensi dan penanganan duplikasi.
+- Data AI yang terlalu besar dapat membuat prompt Gemini panjang. Query perlu dipaginasi, difilter berdasarkan pertanyaan, atau menggunakan retrieval/search pada skala data besar.
+- Daftar customer hanya boleh disediakan untuk Admin.
+- Password dan credential harus selalu dikecualikan dari konteks AI.
+- SQLite sesuai untuk development atau penggunaan kecil. Production dengan trafik lebih besar sebaiknya menggunakan PostgreSQL.
+- Kredensial seed default harus diganti sebelum production.
+- Dokumentasi nama integrasi dan fitur harus selalu disinkronkan dengan implementasi aktual.
+
+====================================================================
+16. KRITERIA PENERIMAAN PRODUK
+====================================================================
+
+Produk dianggap memenuhi kebutuhan dasar jika:
+- Guest dapat melihat katalog layanan aktif.
+- Customer dapat registrasi dan login.
+- Customer dapat membuat dan memantau tiket.
+- Admin dapat mengelola tiket, layanan, customer, teknisi, dan pembayaran.
+- Status tiket dan pembayaran divalidasi di server.
+- Admin dapat mengatur notifikasi Telegram tanpa mengedit .env.
+- Admin dapat menyimpan dua token bot secara aman dan memilih bot aktif.
+- Notifikasi dikirim ke tujuan yang dikonfigurasi.
+- AI dapat menjawab pertanyaan dari data website sesuai role.
+- Admin dapat menanyakan total dan daftar customer.
+- Customer tidak dapat melihat data customer lain.
+- AI tidak membocorkan credential atau konfigurasi sensitif.
+- Aplikasi tetap dapat digunakan ketika Gemini atau Telegram tidak tersedia.
+- Typecheck, lint, dan build berhasil.
+
+====================================================================
+17. RENCANA PENGEMBANGAN LANJUTAN
+====================================================================
+
+Prioritas tinggi:
+- Menambahkan failover Telegram otomatis dengan audit log.
+- Menambahkan test otomatis untuk authorization dan status transition.
+- Menambahkan pencarian AI berbasis pertanyaan agar hanya data relevan yang dikirim ke model.
+- Menambahkan pagination penuh untuk customer, tiket, dan laporan.
+- Menambahkan audit log perubahan Admin.
+
+Prioritas menengah:
+- Payment gateway.
+- Upload attachment yang aman.
+- Akun teknisi terpisah.
+- Email notification sebagai fallback Telegram.
+- Export laporan CSV atau PDF.
+
+Prioritas jangka panjang:
+- Aplikasi mobile.
+- Multi-tenant.
+- Inventory sparepart.
+- Integrasi kalender.
+- Analitik bisnis lanjutan.
+- Customer support chat real-time.
+
+====================================================================
+AKHIR DOKUMEN
+====================================================================
